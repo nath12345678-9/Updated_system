@@ -15,7 +15,7 @@ if (isset($_POST['add_category'])) {
         $check_stmt->bind_param("s", $new_category);
         $check_stmt->execute();
         $result = $check_stmt->get_result();
-        
+
         if ($result->num_rows > 0) {
             $error = "❌ Category already exists!";
         } else {
@@ -73,6 +73,14 @@ if (isset($_POST['submit_product'])) {
     }
 }
 
+$low_stock_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE quantity <= reorder_level");
+$low_stock_count = $low_stock_result ? $low_stock_result->fetch_assoc()['count'] : 0;
+$expired_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE expiration_date < CURDATE()");
+$expired_count = $expired_result ? $expired_result->fetch_assoc()['count'] : 0;
+$expiring_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE expiration_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)");
+$expiring_count = $expiring_result ? $expiring_result->fetch_assoc()['count'] : 0;
+$show_alerts = ($low_stock_count > 0 || $expired_count > 0 || $expiring_count > 0);
+
 $conn->close();
 ?>
 
@@ -84,14 +92,14 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Add Product - Pastelaria Portuguesa</title>
     <link rel="stylesheet" href="css/add.css">
-       
+
 </head>
 
 <body>
     <div class="headerbar">
         <h1 class="heads">Add Products</h1>
     </div>
-    
+
     <!-- SIDEBAR MENU -->
     <input type="checkbox" id="menu-toggle" hidden>
     <label class="contmenu" for="menu-toggle">
@@ -99,18 +107,31 @@ $conn->close();
         <div class="bar2"></div>
         <div class="bar3"></div>
     </label>
-
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <h3>Menu</h3>
         <ul>
             <li><a href="index.php">Sales Transactions</a></li>
             <li><a href="add.php">Add Products</a></li>
-            <li><a href="product.php">Products</a></li>
-            <li><a href="inventory.php">Inventory</a></li>
-           
+            <li>
+                <a href="inventory.php" class="inventory-badge">
+                    Inventory
+                    <?php if ($show_alerts): ?>
+                        <span class="badge-dot"><?= $low_stock_count + $expired_count + $expiring_count ?></span>
+                    <?php endif; ?>
+                </a>
+            </li>
+            <li><a href="sales_report.php">Sales Report</a></li>
             <li><a href="sales-history.php">Sales History</a></li>
         </ul>
+        <div style="position: absolute; bottom: 80px; left: 20px; right: 20px;">
+            <form action="login.php" method="POST" onsubmit="return confirm('Are you sure you want to logout?');">
+                <button type="submit" class="logout" style="width:100%; padding:10px; background:#f44336; color:#fff; border:none; border-radius:8px; cursor:pointer;">
+                    Logout
+                </button>
+            </form>
+        </div>
     </div>
+    <!-- SIDEBAR MENU -->
 
     <!-- Popup Notification -->
     <?php if ($success || $error): ?>
@@ -125,7 +146,7 @@ $conn->close();
         <!-- Category Management Section -->
         <div class="category-section">
             <h3>📁 Category Management</h3>
-            
+
             <!-- Add New Category Form -->
             <div class="new-category-form">
                 <h4>➕ Add New Category</h4>

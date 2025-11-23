@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected'])) {
 
     if (!empty($ids)) {
         $in = implode(',', $ids);
-        
+
         // Delete associated images
         $res = $conn->query("SELECT image FROM inventory WHERE id IN ($in)");
         if ($res) {
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_item'])) {
     $reorder_level = intval($_POST['reorder_level'] ?? 10);
     $supplier = $conn->real_escape_string(trim($_POST['supplier'] ?? ''));
     $cost_price = floatval($_POST['cost_price'] ?? 0);
-    $expiration_date = !empty($_POST['expiration_date']) ? "'".$conn->real_escape_string($_POST['expiration_date'])."'" : "NULL";
+    $expiration_date = !empty($_POST['expiration_date']) ? "'" . $conn->real_escape_string($_POST['expiration_date']) . "'" : "NULL";
     $batch_number = $conn->real_escape_string(trim($_POST['batch_number'] ?? ''));
     $notes = $conn->real_escape_string(trim($_POST['notes'] ?? ''));
 
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_item'])) {
     $reorder_level = intval($_POST['reorder_level'] ?? 10);
     $supplier = $conn->real_escape_string(trim($_POST['supplier'] ?? ''));
     $cost_price = floatval($_POST['cost_price'] ?? 0);
-    $expiration_date = !empty($_POST['expiration_date']) ? "'".$conn->real_escape_string($_POST['expiration_date'])."'" : "NULL";
+    $expiration_date = !empty($_POST['expiration_date']) ? "'" . $conn->real_escape_string($_POST['expiration_date']) . "'" : "NULL";
     $batch_number = $conn->real_escape_string(trim($_POST['batch_number'] ?? ''));
     $notes = $conn->real_escape_string(trim($_POST['notes'] ?? ''));
 
@@ -187,19 +187,11 @@ if ($expiry_filter === 'expired') {
 if ($expiry_filter === 'custom' && $expiry_days > 0) {
     $where[] = "expiration_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL $expiry_days DAY)";
 }
-if (!empty($start_date)) {
-    $start_safe = $conn->real_escape_string($start_date);
-    $where[] = "expiration_date >= '$start_safe'";
-}
-if (!empty($end_date)) {
-    $end_safe = $conn->real_escape_string($end_date);
-    $where[] = "expiration_date <= '$end_safe'";
-}
 
 $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 // Sorting
-$order_by = match($sort) {
+$order_by = match ($sort) {
     'name_asc' => 'item_name ASC',
     'name_desc' => 'item_name DESC',
     'quantity_asc' => 'quantity ASC',
@@ -234,15 +226,24 @@ if (isset($_GET['edit_id'])) {
         $edit_item = $r->fetch_assoc();
     }
 }
+$low_stock_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE quantity <= reorder_level");
+$low_stock_count = $low_stock_result ? $low_stock_result->fetch_assoc()['count'] : 0;
+$expired_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE expiration_date < CURDATE()");
+$expired_count = $expired_result ? $expired_result->fetch_assoc()['count'] : 0;
+$expiring_result = $conn->query("SELECT COUNT(*) as count FROM inventory WHERE expiration_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)");
+$expiring_count = $expiring_result ? $expiring_result->fetch_assoc()['count'] : 0;
+$show_alerts = ($low_stock_count > 0 || $expired_count > 0 || $expiring_count > 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Inventory - Pastelaria Portuguesa</title>
-    <link rel="stylesheet" href="css/inventory.css">
+    <link rel="stylesheet" href="css/invent.css">
 </head>
+
 <body>
     <div class="headerbar">
         <h1 class="heads">Inventory Management</h1>
@@ -255,16 +256,32 @@ if (isset($_GET['edit_id'])) {
         <div class="bar2"></div>
         <div class="bar3"></div>
     </label>
-
     <div class="sidebar" id="sidebar">
         <h3>Menu</h3>
         <ul>
             <li><a href="index.php">Sales Transactions</a></li>
-            <li><a href="inventory.php">Inventory</a></li>
-            <li><a href="inventory-mapping.php">Product-Inventory Link</a></li>
+            <li><a href="add.php">Add Products</a></li>
+            <li><a href="product.php">Products</a></li>
+            <li>
+                <a href="inventory.php" class="inventory-badge">
+                    Inventory
+                    <?php if ($show_alerts): ?>
+                        <span class="badge-dot"><?= $low_stock_count + $expired_count + $expiring_count ?></span>
+                    <?php endif; ?>
+                </a>
+            </li>
             <li><a href="sales-history.php">Sales History</a></li>
+            <li><a href="admin-notifications.php">Admin Notifications</a></li>
         </ul>
+        <div style="position: absolute; bottom: 20px; left: 20px; right: 20px;">
+            <form action="login.php" method="POST" onsubmit="return confirm('Are you sure you want to logout?');">
+                <button type="submit" class="logout" style="width:100%; padding:10px; background:#f44336; color:#fff; border:none; border-radius:8px; cursor:pointer;">
+                    Logout
+                </button>
+            </form>
+        </div>
     </div>
+    <!-- SIDEBAR MENU -->
 
     <div class="inventory-wrap">
         <!-- Alerts Dashboard -->
@@ -294,12 +311,12 @@ if (isset($_GET['edit_id'])) {
         <!-- Add/Edit Form -->
         <?php if ($edit_item || isset($_GET['add'])): ?>
             <div class="form-section">
-                <h3><?= $edit_item ? 'Edit Item (ID: '.(int)$edit_item['id'].')' : 'Add New Item' ?></h3>
+                <h3><?= $edit_item ? 'Edit Item (ID: ' . (int)$edit_item['id'] . ')' : 'Add New Item' ?></h3>
                 <form action="inventory.php" method="POST" enctype="multipart/form-data">
                     <?php if ($edit_item): ?>
                         <input type="hidden" name="id" value="<?= (int)$edit_item['id'] ?>">
                     <?php endif; ?>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Item Name *</label>
@@ -310,7 +327,7 @@ if (isset($_GET['edit_id'])) {
                             <select name="category" required>
                                 <option value="">Select Category</option>
                                 <?php foreach ($categories as $cat): ?>
-                                    <option value="<?= htmlspecialchars($cat) ?>" 
+                                    <option value="<?= htmlspecialchars($cat) ?>"
                                         <?= ($edit_item && $edit_item['category'] == $cat) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($cat) ?>
                                     </option>
@@ -386,7 +403,7 @@ if (isset($_GET['edit_id'])) {
         <div class="filters-section">
             <form method="GET" class="filters-form">
                 <input type="text" name="search" placeholder="Search items, supplier, batch..." value="<?= htmlspecialchars($search) ?>">
-                
+
                 <select name="category">
                     <option value="">All Categories</option>
                     <?php foreach ($categories as $cat): ?>
@@ -462,14 +479,14 @@ if (isset($_GET['edit_id'])) {
                     </thead>
                     <tbody>
                         <?php if ($inventory && $inventory->num_rows > 0): ?>
-                            <?php while ($item = $inventory->fetch_assoc()): 
+                            <?php while ($item = $inventory->fetch_assoc()):
                                 $is_low_stock = $item['quantity'] <= $item['reorder_level'];
                                 $is_out_of_stock = $item['quantity'] == 0;
                                 $is_expired = !empty($item['expiration_date']) && strtotime($item['expiration_date']) < time();
-                                $is_expiring = !empty($item['expiration_date']) && 
-                                               strtotime($item['expiration_date']) >= time() && 
-                                               strtotime($item['expiration_date']) <= strtotime('+30 days');
-                                
+                                $is_expiring = !empty($item['expiration_date']) &&
+                                    strtotime($item['expiration_date']) >= time() &&
+                                    strtotime($item['expiration_date']) <= strtotime('+30 days');
+
                                 $status_class = '';
                                 $status_text = 'OK';
                                 if ($is_out_of_stock) {
@@ -550,6 +567,18 @@ if (isset($_GET['edit_id'])) {
             const checkboxes = document.querySelectorAll('input[name="ids[]"]');
             checkboxes.forEach(cb => cb.checked = this.checked);
         });
+        
+        // Toggle custom days input
+        function toggleExpiryInput() {
+            const select = document.getElementById('expirySelect');
+            const customInput = document.getElementById('customDaysInput');
+            if (select.value === 'custom') {
+                customInput.style.display = 'inline-block';
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
     </script>
 </body>
+
 </html>
