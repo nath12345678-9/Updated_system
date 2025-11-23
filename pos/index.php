@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_sale'])) {
             <li><a href="product.php">Products</a></li>
             <li><a href="inventory.php">Inventory</a></li>
             <li><a href="sales-history.php">Sales History</a></li>
-            <li><a href="sales-report.php">Sales Report</a></li>
+            <li><a href="sales_report.php">Sales Report</a></li>
             <li><a href="admin-notification.php">Admin Notifications</a></li>
         </ul>
     </div>
