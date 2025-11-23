@@ -1,0 +1,36 @@
+@import 'common.css';
+
+/* ====================================================== */
+/* BACKGROUND IMAGE STYLING */
+
+.container {
+  background: rgba(255, 255, 255, 0);
+}
+
+.cart-summary {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url('../img/sales_transaction-background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(4px);
+  transform: scale(1.03);
+  z-index: -2;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: -1;
+  pointer-events: none;
+}

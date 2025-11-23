@@ -1,0 +1,27 @@
+@import 'common.css';
+
+/* ====================================================== */
+/* BACKGROUND IMAGE STYLES */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url('../img/sales-history-background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(5px);
+  transform: scale(1.03);
+  z-index: -2;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: -1;
+  pointer-events: none;
+}
